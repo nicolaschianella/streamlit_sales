@@ -78,7 +78,7 @@ if __name__ == '__main__':
     )
 
     # Get arguments
-    parser = argparse.ArgumentParser(description="VintedBot")
+    parser = argparse.ArgumentParser(description="StreamlitSales")
     parser.add_argument(
         "-p",
         "--port",
