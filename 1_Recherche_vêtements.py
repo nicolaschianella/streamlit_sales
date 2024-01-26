@@ -14,6 +14,7 @@ import logging
 import argparse
 import os
 import time
+from pytz import timezone
 from typing import Union
 from datetime import datetime
 from operator import itemgetter
@@ -26,6 +27,7 @@ def run() -> None:
     while the API is requested.
     :return: None
     """
+    logging.info("Acquiring clothes")
     st.session_state.run = True
 
 def get_clothes(port: int) -> Union[str, requests.models.Response]:
@@ -33,22 +35,24 @@ def get_clothes(port: int) -> Union[str, requests.models.Response]:
     Acquires Vinted clothes using our API.
     :param port: int, API port to use
     :return: clothes, str (in case of error) or requests.models.Response (if the call was successful)"""
-    # Loading spinner
-    with st.spinner('Acquisition des vêtements...'):
-        try:
-            # TODO: load selected requests and loop over them instead
-            clothes = []
-            for _ in range(2):
-                request_clothes = requests.get(f"{API_HOST}:{port}/{GET_CLOTHES_ROUTE}", data=json.dumps({}))
-                clothes = format_clothes(clothes, request_clothes)
+    try:
+        # TODO: load selected requests and loop over them instead - simultation below
+        clothes = []
+        for _ in range(2):
+            request_clothes = requests.get(f"{API_HOST}:{port}/{GET_CLOTHES_ROUTE}", data=json.dumps({}))
+            clothes = format_clothes(clothes, request_clothes)
 
-            # Finally sort by datetime
-            clothes = sorted(clothes, key=itemgetter('created_at_datetime'), reverse=True)
+        # Finally sort by datetime
+        clothes = sorted(clothes, key=itemgetter('created_at_datetime'), reverse=True)
 
-        except requests.exceptions.ConnectionError:
-            clothes = "Oops! L'API semble down."
+    except requests.exceptions.ConnectionError:
+        logging.error("API is down! Cannot proceed further")
+        clothes = "Oops! L'API semble down."
     # State is not run anymore
     st.session_state.run = False
+
+    logging.info(f"Successfully retrieved {len(clothes)} clothes")
+
     return clothes
 
 def format_clothes(clothes: list, request_clothes: requests.models.Response) -> list:
@@ -59,14 +63,60 @@ def format_clothes(clothes: list, request_clothes: requests.models.Response) -> 
     :return: list, formatted clothes with unique values
     """
     request_clothes = json.loads(request_clothes.json()["data"])
-    for  item in request_clothes:
-        # Format str to datetime
-        # TODO: change timezoneo Europe/Brussels and handle case where we have "NA" in item["created_at_ts"] (interpolation)
-        item["created_at_datetime"] = datetime.strptime(item["created_at_ts"], f"%Y-%m-%dT%H:%M:%S%z")
+    for item in request_clothes:
+        # Means there is no associated picture -> we don't consider these
+        if item["created_at_ts"] == "NA":
+            logging.warning(f"Encountered item with no picture, skipping: {item}")
+            continue
+        # Format str to datetime and apply local time
+        item["created_at_datetime"] = (datetime.strptime(item["created_at_ts"], f"%Y-%m-%dT%H:%M:%S%z")
+                                       .astimezone(timezone("Europe/Brussels")))
         if item not in clothes:
             clothes.append(item)
+        else:
+            logging.warning(f"Item encountered more than once, skipping: {item}")
 
     return clothes
+
+def display_clothe(clothe: dict) -> None:
+    """
+    Given a dict (clothe), displays it on a container
+    :param clothe: dict, formatted clothe
+    :return: None
+    """
+    logging.info(f"Displaying clothe: {clothe}")
+
+    with st.container(border=True):
+        # Generate grid
+        tiles = []
+        row1 = st.columns(1) # For title
+        row2 = st.columns(2) # (Date, Brand, Size, Status, Price, Favourites, Views) + image
+        row3 = st.columns(2) # Button to visit link, AutoBuy
+
+        for col in row1 + row2 + row3:
+            tiles.append(col.container())
+        # Display elements
+        # Title - add suspicious photo in case
+        if not clothe["is_photo_suspicious"]:
+            tiles[0].subheader(clothe["title"])
+        else:
+            tiles[0].subheader(clothe["title"] + " - PHOTO SUSPICIEUSE")
+        # Date, Brand, Size, Status, Price, Favourites, Views
+        tiles[1].markdown(f"**Date:** {clothe['created_at_datetime']}")
+        tiles[1].markdown(f"**Marque:** {clothe['brand_title']}")
+        tiles[1].markdown(f"**Taille:** {clothe['size_title']}")
+        tiles[1].markdown(f"**Etat:** {clothe['status']}")
+        tiles[1].markdown(f"**Prix:** {clothe['total_item_price']} {clothe['currency']}  "
+                          f"({clothe['price_no_fee']} + {clothe['service_fee']} fee)")
+        tiles[1].markdown(f"**Nombre de vues:** {clothe['view_count']}")
+        tiles[1].markdown(f"**Nombre de favoris:** {clothe['favourite_count']}")
+        # Image
+        tiles[2].image(clothe["photo_url"], width=300)
+        # Buttons
+        tiles[3].link_button('Voir sur Vinted', clothe["url"])
+        tiles[4].button('AutoBuy', type="primary", key=str(clothe["id"]))
+
+    return
 
 def main(port: int) -> None:
     """Main function running this page.
@@ -92,9 +142,9 @@ def main(port: int) -> None:
             st.write(st.session_state.result)
 
         else:
-            # Case call successful -> TODO: format data and display
-            st.write(st.session_state.result)
-
+            # Case call successful
+            for clothe in st.session_state.result:
+                display_clothe(clothe)
 
 
 if __name__ == '__main__':
@@ -130,7 +180,7 @@ if __name__ == '__main__':
 
     logging.basicConfig(
         filename=args.log,
-        level=logging.INFO, # TODO: INFO or DEBUG? DEBUG -> log file very large
+        level=logging.INFO,
         format="%(asctime)s -- %(funcName)s -- %(levelname)s -- %(message)s"
     )
 
