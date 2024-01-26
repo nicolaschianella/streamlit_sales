@@ -55,8 +55,7 @@ def main(port: int) -> None:
 
     # Put clothes in session_state and rerun the app to make the button clickable again
     if st.session_state.run:
-        clothes = get_clothes(port)
-        st.session_state.result = clothes
+        st.session_state.result = get_clothes(port)
         st.rerun()
 
     # Once we finish getting clothes (successful or not), we need to rewrite them since we rerun the app
