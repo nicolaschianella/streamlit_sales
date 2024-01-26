@@ -78,7 +78,7 @@ def main(port: int) -> None:
         st.session_state.run = False
         st.session_state.result = None
 
-    st.button('Chercher vêtements', on_click=run, disabled=st.session_state.run)
+    st.button('Chercher vêtements', on_click=run, disabled=st.session_state.run, type="primary")
 
     # Put clothes in session_state and rerun the app to make the button clickable again
     if st.session_state.run:
