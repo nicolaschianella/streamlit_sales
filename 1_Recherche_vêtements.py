@@ -19,7 +19,7 @@ from typing import Union
 from datetime import datetime
 from operator import itemgetter
 
-from config.defines import API_HOST, GET_CLOTHES_ROUTE
+from config.defines import API_HOST, GET_CLOTHES_ROUTE, GET_REQUESTS_ROUTE
 
 def run() -> None:
     """
@@ -30,16 +30,31 @@ def run() -> None:
     logging.info("Acquiring clothes")
     st.session_state.run = True
 
-def get_clothes(port: int) -> Union[str, requests.models.Response]:
+def get_clothes(port: int, selected_requests: list) -> Union[str, requests.models.Response]:
     """Main function called when we click on the "Chercher vêtements" button.
     Acquires Vinted clothes using our API.
     :param port: int, API port to use
+    :param selected_requests: list of str, list of requests names to apply
     :return: clothes, str (in case of error) or requests.models.Response (if the call was successful)"""
     try:
-        # TODO: load selected requests and loop over them instead - simultation below
         clothes = []
-        for _ in range(2):
-            request_clothes = requests.get(f"{API_HOST}:{port}/{GET_CLOTHES_ROUTE}", data=json.dumps({}))
+
+        # Case no selected request
+        if not selected_requests:
+            logging.warning("No selected clothes requests")
+            # State is not run anymore
+            st.session_state.run = False
+            return "Aucune recherche sélectionnée !"
+
+        for request_name in selected_requests:
+            # Find the whole request
+            found_request = {}
+            for request in st.session_state.requests:
+                if request_name == request["name"]:
+                    found_request = request
+                    break
+            request_clothes = requests.get(f"{API_HOST}:{port}/{GET_CLOTHES_ROUTE}", data=json.dumps(found_request))
+            # TODO: add request_name in format_clothe to display it and/or to keep it for AutoBuy button
             clothes = format_clothes(clothes, request_clothes)
 
         # Finally sort by datetime
@@ -47,7 +62,7 @@ def get_clothes(port: int) -> Union[str, requests.models.Response]:
 
     except requests.exceptions.ConnectionError:
         logging.error("API is down! Cannot proceed further")
-        clothes = "Oops! L'API semble down."
+        clothes = "Oops ! L'API semble down."
     # State is not run anymore
     st.session_state.run = False
 
@@ -118,33 +133,66 @@ def display_clothe(clothe: dict) -> None:
 
     return
 
+def get_requests(port: int) -> list:
+    """
+    Function called to fill the "Recherches à appliquer" multiselect.
+    Acquires available clothes requests using our API and put them in st.session_state.
+    :param port: int, API port to use
+    :return: None
+    """
+    logging.info("Getting requests")
+    available_requests = requests.get(f"{API_HOST}:{port}/{GET_REQUESTS_ROUTE}")
+
+    # Case error
+    if available_requests.status_code != 200:
+        st.write(f"Oops ! Il y a eu un souci avec l'acquisition des recherches : {available_requests.json()['message']}")
+
+    # Case all good
+    else:
+        st.session_state.requests = json.loads(available_requests.json()["data"]["requests"])
+
+    return
+
 def main(port: int) -> None:
     """Main function running this page.
     :param port: int, API port to use
     :return: None
     """
-    # Deactivate button when running get_clothes
+    # Deactivate button and requests selection when running get_clothes
     if 'run' not in st.session_state:
         st.session_state.run = False
         st.session_state.result = None
+        st.session_state.requests = None
 
-    st.button('Chercher vêtements', on_click=run, disabled=st.session_state.run, type="primary")
+    # get all the available requests
+    get_requests(port)
 
-    # Put clothes in session_state and rerun the app to make the button clickable again
-    if st.session_state.run:
-        st.session_state.result = get_clothes(port)
-        st.rerun()
+    if st.session_state.requests:
+        # Requests selector
+        selected_requests = st.multiselect("Recherches à appliquer",
+                                           help="Seuls les noms sont affichés. L'ensemble des requêtes se trouve dans la "
+                                                "page 'Edition requêtes'",
+                                           options=[request["name"] for request in st.session_state.requests],
+                                           default=[request["name"] for request in st.session_state.requests],
+                                           disabled=st.session_state.run)
 
-    # Once we finish getting clothes (successful or not), we need to rewrite them since we rerun the app
-    if st.session_state.result is not None:
-        if type(st.session_state.result) is str:
-            # Case call not successful -> print error message for the user
-            st.write(st.session_state.result)
+        st.button('Chercher vêtements', on_click=run, disabled=st.session_state.run, type="primary")
 
-        else:
-            # Case call successful
-            for clothe in st.session_state.result:
-                display_clothe(clothe)
+        # Put clothes in session_state and rerun the app to make the button clickable again
+        if st.session_state.run:
+            st.session_state.result = get_clothes(port, selected_requests)
+            st.rerun()
+
+        # Once we finish getting clothes (successful or not), we need to rewrite them since we rerun the app
+        if st.session_state.result is not None:
+            if type(st.session_state.result) is str:
+                # Case call not successful -> print error message for the user
+                st.write(st.session_state.result)
+
+            else:
+                # Case call successful
+                for clothe in st.session_state.result:
+                    display_clothe(clothe)
 
 
 if __name__ == '__main__':
