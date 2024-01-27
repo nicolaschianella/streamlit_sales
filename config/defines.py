@@ -11,3 +11,5 @@
 API_HOST = "http://127.0.0.1"
 # Route to get_clothes
 GET_CLOTHES_ROUTE = "api/operations/get_clothes"
+# Route to get_requests
+GET_REQUESTS_ROUTE = "api/operations/get_requests"
