@@ -143,6 +143,7 @@ def display_clothe(clothe: dict,
         # Buttons
         tiles[3].link_button('Voir sur Vinted', clothe["url"])
         tiles[4].button('AutoBuy', type="primary", key=str(clothe["id"]))
+        # Corresponding request name
         tiles[5].markdown(f"**Via recherche:** {request_name}")
 
     return
