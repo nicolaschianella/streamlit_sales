@@ -37,6 +37,7 @@ def get_clothes(port: int,
     :param port: int, API port to use
     :param selected_requests: list of str, list of requests names to apply
     :return: clothes, str (in case of error) or requests.models.Response (if the call was successful)"""
+    corresponding_requests = []
     try:
         clothes = []
 
@@ -45,7 +46,7 @@ def get_clothes(port: int,
             logging.warning("No selected clothes requests")
             # State is not run anymore
             st.session_state.run = False
-            return "Aucune recherche sélectionnée !"
+            return "Aucune recherche sélectionnée !", corresponding_requests
 
         for request_name in selected_requests:
             # Find the whole request
@@ -55,21 +56,28 @@ def get_clothes(port: int,
                     found_request = request
                     break
             request_clothes = requests.get(f"{API_HOST}:{port}/{GET_CLOTHES_ROUTE}", data=json.dumps(found_request))
-            # TODO: add request_name in format_clothe to display it and/or to keep it for AutoBuy button
             clothes = format_clothes(clothes, request_clothes)
+            corresponding_requests.extend([found_request["name"]] * (len(clothes) - len(corresponding_requests)))
 
-        # Finally sort by datetime
+        # Keep copy of the original order
+        clothes_orig = clothes.copy()
+        # Sort clothes by datetime
         clothes = sorted(clothes, key=itemgetter('created_at_datetime'), reverse=True)
+        # Get the indices of the sorted order from the clothes_orig list
+        indices = [clothes_orig.index(item) for item in clothes]
+        # Finally sort requests the same way
+        corresponding_requests = [corresponding_requests[i] for i in indices]
 
     except requests.exceptions.ConnectionError:
         logging.error("API is down! Cannot proceed further")
         clothes = "Oops ! L'API semble down."
+
     # State is not run anymore
     st.session_state.run = False
 
     logging.info(f"Successfully retrieved {len(clothes)} clothes")
 
-    return clothes
+    return clothes, corresponding_requests
 
 def format_clothes(clothes: list,
                    request_clothes: requests.models.Response) -> list:
@@ -95,10 +103,12 @@ def format_clothes(clothes: list,
 
     return clothes
 
-def display_clothe(clothe: dict) -> None:
+def display_clothe(clothe: dict,
+                   request_name: str) -> None:
     """
     Given a dict (clothe), displays it on a container
     :param clothe: dict, formatted clothe
+    :param request_name, str, the corresponding request name
     :return: None
     """
     logging.info(f"Displaying clothe: {clothe}")
@@ -109,8 +119,9 @@ def display_clothe(clothe: dict) -> None:
         row1 = st.columns(1) # For title
         row2 = st.columns(2) # (Date, Brand, Size, Status, Price, Favourites, Views) + image
         row3 = st.columns(2) # Button to visit link, AutoBuy
+        row4 = st.columns(1) # Corresponding request_name
 
-        for col in row1 + row2 + row3:
+        for col in row1 + row2 + row3 + row4:
             tiles.append(col.container())
         # Display elements
         # Title - add suspicious photo in case
@@ -132,6 +143,7 @@ def display_clothe(clothe: dict) -> None:
         # Buttons
         tiles[3].link_button('Voir sur Vinted', clothe["url"])
         tiles[4].button('AutoBuy', type="primary", key=str(clothe["id"]))
+        tiles[5].markdown(f"**Via recherche:** {request_name}")
 
     return
 
@@ -143,17 +155,27 @@ def get_requests(port: int) -> list:
     :return: None
     """
     logging.info("Getting requests")
-    available_requests = requests.get(f"{API_HOST}:{port}/{GET_REQUESTS_ROUTE}")
 
-    # Case error
-    if available_requests.status_code != 200:
-        st.write(f"Oops ! Il y a eu un souci avec l'acquisition des recherches : {available_requests.json()['message']}")
+    try:
+        available_requests = requests.get(f"{API_HOST}:{port}/{GET_REQUESTS_ROUTE}")
 
-    # Case all good
-    else:
-        st.session_state.requests = json.loads(available_requests.json()["data"]["requests"])
+        # Case error
+        if available_requests.status_code != 200:
+            logging.error(f"There was an issue while acquiring requests: {available_requests.json()['message']}")
+            st.write(f"Oops ! Il y a eu un souci avec l'acquisition des recherches : {available_requests.json()['message']}")
 
-    return
+        # Case all good
+        else:
+            logging.info(f"Successfully retrived requests: {available_requests.json()['data']['requests']}")
+            st.session_state.requests = json.loads(available_requests.json()["data"]["requests"])
+
+        return
+
+    except requests.exceptions.ConnectionError:
+        logging.error("API is down! Cannot proceed further")
+        st.write(f"Oops ! L'API semble down.")
+
+        return
 
 def main(port: int) -> None:
     """Main function running this page.
@@ -162,9 +184,15 @@ def main(port: int) -> None:
     """
     # Deactivate button and requests selection when running get_clothes
     if 'run' not in st.session_state:
+        # API is loading clothes
         st.session_state.run = False
+        # Found clothes
         st.session_state.result = None
+        # Corresponding clothes requests for each clothe
+        st.session_state.corresponding_requests = None
+        # All the requests found in MongoDB
         st.session_state.requests = None
+        # Current selected requests in the selector
         st.session_state.selected_requests = None
 
     # get all the available requests
@@ -187,7 +215,7 @@ def main(port: int) -> None:
         # Also keep track of selected requests
         if st.session_state.run:
             st.session_state.selected_requests = selected_requests
-            st.session_state.result = get_clothes(port, selected_requests)
+            st.session_state.result, st.session_state.corresponding_requests = get_clothes(port, selected_requests)
             st.rerun()
 
         # Once we finish getting clothes (successful or not), we need to rewrite them since we rerun the app
@@ -198,8 +226,8 @@ def main(port: int) -> None:
 
             else:
                 # Case call successful
-                for clothe in st.session_state.result:
-                    display_clothe(clothe)
+                for clothe, request_name in zip(st.session_state.result, st.session_state.corresponding_requests):
+                    display_clothe(clothe, request_name)
 
 
 if __name__ == '__main__':
