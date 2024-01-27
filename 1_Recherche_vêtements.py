@@ -30,7 +30,8 @@ def run() -> None:
     logging.info("Acquiring clothes")
     st.session_state.run = True
 
-def get_clothes(port: int, selected_requests: list) -> Union[str, requests.models.Response]:
+def get_clothes(port: int,
+                selected_requests: list) -> Union[str, requests.models.Response]:
     """Main function called when we click on the "Chercher vêtements" button.
     Acquires Vinted clothes using our API.
     :param port: int, API port to use
@@ -70,7 +71,8 @@ def get_clothes(port: int, selected_requests: list) -> Union[str, requests.model
 
     return clothes
 
-def format_clothes(clothes: list, request_clothes: requests.models.Response) -> list:
+def format_clothes(clothes: list,
+                   request_clothes: requests.models.Response) -> list:
     """
     Formats clothes from the API response
     :param clothes: list, all the current clothes
@@ -163,6 +165,7 @@ def main(port: int) -> None:
         st.session_state.run = False
         st.session_state.result = None
         st.session_state.requests = None
+        st.session_state.selected_requests = None
 
     # get all the available requests
     get_requests(port)
@@ -173,13 +176,17 @@ def main(port: int) -> None:
                                            help="Seuls les noms sont affichés. L'ensemble des requêtes se trouve dans la "
                                                 "page 'Edition requêtes'",
                                            options=[request["name"] for request in st.session_state.requests],
-                                           default=[request["name"] for request in st.session_state.requests],
+                                           default=st.session_state.selected_requests \
+                                               if st.session_state.selected_requests \
+                                               else [request["name"] for request in st.session_state.requests],
                                            disabled=st.session_state.run)
 
         st.button('Chercher vêtements', on_click=run, disabled=st.session_state.run, type="primary")
 
         # Put clothes in session_state and rerun the app to make the button clickable again
+        # Also keep track of selected requests
         if st.session_state.run:
+            st.session_state.selected_requests = selected_requests
             st.session_state.result = get_clothes(port, selected_requests)
             st.rerun()
 
