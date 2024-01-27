@@ -70,7 +70,6 @@ def get_clothes(port: int,
 
     except requests.exceptions.ConnectionError:
         logging.error("API is down! Cannot proceed further")
-        clothes = "Oops ! L'API semble down."
 
     # State is not run anymore
     st.session_state.run = False
