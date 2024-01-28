@@ -232,7 +232,7 @@ def main(port: int) -> None:
                 cols = [col1, col2, col3]
                 c = 0
                 for clothe, request_name in zip(st.session_state.result, st.session_state.corresponding_requests):
-                    with cols[(c % 3) + 1]:
+                    with cols[c % 3]:
                         display_clothe(clothe, request_name)
                         c += 1
 
