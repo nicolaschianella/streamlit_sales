@@ -142,9 +142,10 @@ def display_clothe(clothe: dict,
         tiles[1].markdown(f"**Nombre de favoris:** {clothe['favourite_count']}")
         # Image
         # tiles[2].image(clothe["photo_url"], use_column_width=True)
-        rq.urlretrieve(clothe["photo_url"], "clothe_image")
-        img = Image.open("clothe_image")
+        rq.urlretrieve(clothe["photo_url"], "clothe_image.png")
+        img = Image.open("clothe_image.png")
         tiles[2].image(img.resize((300, 300)))
+        os.remove("clothe_image.png")
         # Buttons
         tiles[3].link_button('Voir sur Vinted', clothe["url"])
         tiles[4].button('AutoBuy', type="primary", key=str(clothe["id"]))
