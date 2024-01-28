@@ -261,7 +261,7 @@ if __name__ == '__main__':
     logging.basicConfig(
         filename=args.log,
         level=logging.INFO,
-        format="%(asctime)s -- %(funcName)s -- %(levelname)s -- %(message)s"
+        format="%(asctime)s -- %(filename)s -- %(funcName)s -- %(levelname)s -- %(message)s"
     )
 
     main(args.port)
