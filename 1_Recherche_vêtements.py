@@ -18,6 +18,8 @@ from pytz import timezone
 from typing import Union
 from datetime import datetime
 from operator import itemgetter
+import urllib.request as rq
+from PIL import Image
 
 from config.defines import API_HOST, GET_CLOTHES_ROUTE, GET_REQUESTS_ROUTE
 
@@ -139,7 +141,10 @@ def display_clothe(clothe: dict,
         tiles[1].markdown(f"**Nombre de vues:** {clothe['view_count']}")
         tiles[1].markdown(f"**Nombre de favoris:** {clothe['favourite_count']}")
         # Image
-        tiles[2].image(clothe["photo_url"], width=300)
+        # tiles[2].image(clothe["photo_url"], use_column_width=True)
+        rq.urlretrieve(clothe["photo_url"], "clothe_image")
+        img = Image.open("clothe_image")
+        tiles[2].image(img.resize((300, 300)))
         # Buttons
         tiles[3].link_button('Voir sur Vinted', clothe["url"])
         tiles[4].button('AutoBuy', type="primary", key=str(clothe["id"]))
@@ -222,15 +227,21 @@ def main(port: int) -> None:
                 st.write(st.session_state.result)
 
             else:
-                # Case call successful
+                # Case call successful - display everything on 3 columns
+                col1, col2, col3 = st.columns(3)
+                cols = [col1, col2, col3]
+                c = 0
                 for clothe, request_name in zip(st.session_state.result, st.session_state.corresponding_requests):
-                    display_clothe(clothe, request_name)
+                    with cols[(c % 3) + 1]:
+                        display_clothe(clothe, request_name)
+                        c += 1
 
 
 if __name__ == '__main__':
     # Page name
     st.set_page_config(
         page_title="Recherche vêtements",
+        layout="wide"
     )
 
     # Get arguments
