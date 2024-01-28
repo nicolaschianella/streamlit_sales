@@ -31,15 +31,16 @@ def run() -> None:
     st.session_state.run = True
 
 def get_clothes(port: int,
-                selected_requests: list) -> Union[str, requests.models.Response]:
+                selected_requests: list) -> tuple[Union[str, list], list]:
     """Main function called when we click on the "Chercher vêtements" button.
     Acquires Vinted clothes using our API.
     :param port: int, API port to use
     :param selected_requests: list of str, list of requests names to apply
-    :return: clothes, str (in case of error) or requests.models.Response (if the call was successful)"""
+    :return: tuple, (clothes, corresponding_requests),
+    (str (in case of error) or list (if the call was successful), list)"""
     corresponding_requests = []
+    clothes = []
     try:
-        clothes = []
 
         # Case no selected request
         if not selected_requests:
@@ -147,7 +148,7 @@ def display_clothe(clothe: dict,
 
     return
 
-def get_requests(port: int) -> list:
+def get_requests(port: int) -> None:
     """
     Function called to fill the "Recherches à appliquer" multiselect.
     Acquires available clothes requests using our API and put them in st.session_state.
@@ -169,13 +170,9 @@ def get_requests(port: int) -> list:
             logging.info(f"Successfully retrived requests: {available_requests.json()['data']['requests']}")
             st.session_state.requests = json.loads(available_requests.json()["data"]["requests"])
 
-        return
-
     except requests.exceptions.ConnectionError:
         logging.error("API is down! Cannot proceed further")
         st.write(f"Oops ! L'API semble down.")
-
-        return
 
 def main(port: int) -> None:
     """Main function running this page.
