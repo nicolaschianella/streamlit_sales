@@ -167,7 +167,7 @@ def get_requests(port: int) -> None:
 
         # Case all good
         else:
-            logging.info(f"Successfully retrived requests: {available_requests.json()['data']['requests']}")
+            logging.info(f"Successfully retrieved requests: {available_requests.json()['data']['requests']}")
             st.session_state.requests = json.loads(available_requests.json()["data"]["requests"])
 
     except requests.exceptions.ConnectionError:
