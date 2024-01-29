@@ -35,7 +35,7 @@ def format_requests() -> list[dict]:
 
     # Use mapper to get proper displayed names
     for request in requests:
-        for_reqs.append({MAPPER_REQUESTS[key]: request[key] for key in request if key in MAPPER_REQUESTS})
+        for_reqs.append({MAPPER_REQUESTS[key]: request[key] for key in MAPPER_REQUESTS})
 
     return for_reqs
 
