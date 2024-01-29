@@ -88,3 +88,11 @@ def get_requests(port: int) -> None:
     except requests.exceptions.ConnectionError:
         logging.error("API is down! Cannot proceed further")
         st.write(f"Oops ! L'API semble down.")
+
+def clear_session_state() -> None:
+    """
+    Clears all session state variables
+    :return: None
+    """
+    for key in st.session_state:
+        del st.session_state[key]
