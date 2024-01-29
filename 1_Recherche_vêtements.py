@@ -21,7 +21,8 @@ from operator import itemgetter
 import urllib.request as rq
 from PIL import Image
 
-from config.defines import API_HOST, GET_CLOTHES_ROUTE, GET_REQUESTS_ROUTE
+from utils.defines import API_HOST, GET_CLOTHES_ROUTE
+from utils.utils import get_requests
 
 def run() -> None:
     """
@@ -153,32 +154,6 @@ def display_clothe(clothe: dict,
         tiles[5].markdown(f"**Via recherche:** {request_name}")
 
     return
-
-def get_requests(port: int) -> None:
-    """
-    Function called to fill the "Recherches à appliquer" multiselect.
-    Acquires available clothes requests using our API and put them in st.session_state.
-    :param port: int, API port to use
-    :return: None
-    """
-    logging.info("Getting requests")
-
-    try:
-        available_requests = requests.get(f"{API_HOST}:{port}/{GET_REQUESTS_ROUTE}")
-
-        # Case error
-        if available_requests.status_code != 200:
-            logging.error(f"There was an issue while acquiring requests: {available_requests.json()['message']}")
-            st.write(f"Oops ! Il y a eu un souci avec l'acquisition des recherches : {available_requests.json()['message']}")
-
-        # Case all good
-        else:
-            logging.info(f"Successfully retrieved requests: {available_requests.json()['data']['requests']}")
-            st.session_state.requests = json.loads(available_requests.json()["data"]["requests"])
-
-    except requests.exceptions.ConnectionError:
-        logging.error("API is down! Cannot proceed further")
-        st.write(f"Oops ! L'API semble down.")
 
 def main(port: int) -> None:
     """Main function running this page.
