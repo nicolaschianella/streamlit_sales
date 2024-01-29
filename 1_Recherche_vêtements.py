@@ -33,12 +33,14 @@ def run() -> None:
 
 def get_clothes(port: int,
                 selected_requests: list) -> tuple[Union[str, list], list]:
-    """Main function called when we click on the "Chercher vêtements" button.
+    """
+    Main function called when we click on the "Chercher vêtements" button.
     Acquires Vinted clothes using our API.
     :param port: int, API port to use
     :param selected_requests: list of str, list of requests names to apply
     :return: tuple, (clothes, corresponding_requests),
-    (str (in case of error) or list (if the call was successful), list)"""
+    (str (in case of error) or list (if the call was successful), list)
+    """
     corresponding_requests = []
     clothes = []
     try:
@@ -154,7 +156,8 @@ def display_clothe(clothe: dict,
     return
 
 def main(port: int) -> None:
-    """Main function running this page.
+    """
+    Main function running this page.
     :param port: int, API port to use
     :return: None
     """
