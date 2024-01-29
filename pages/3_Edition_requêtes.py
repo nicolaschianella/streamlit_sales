@@ -9,6 +9,7 @@
 ###############################################################################
 import streamlit as st
 import pandas as pd
+import logging
 
 from utils.utils import set_basic_config, get_requests
 from utils.defines import MAPPER_REQUESTS
@@ -21,6 +22,7 @@ def display_requests() -> None:
     """
     # Format requests
     for_reqs = format_requests()
+    logging.info(f"Displaying requests: {for_reqs}")
     # Build the corresponding DataFrame and display it
     df_req = pd.DataFrame(for_reqs)
     edited_df = st.data_editor(df_req, num_rows="dynamic")
@@ -33,9 +35,13 @@ def format_requests() -> list[dict]:
     requests = st.session_state.requests.copy()
     for_reqs = []
 
+    logging.info(f"Formatting requests: {requests}")
+
     # Use mapper to get proper displayed names
     for request in requests:
         for_reqs.append({MAPPER_REQUESTS[key]: request[key] for key in MAPPER_REQUESTS})
+
+    logging.info(f"Successfully formatted requests: {for_reqs}")
 
     return for_reqs
 
