@@ -11,9 +11,7 @@ import streamlit as st
 import requests
 import json
 import logging
-import argparse
 import os
-import time
 from pytz import timezone
 from typing import Union
 from datetime import datetime
@@ -22,7 +20,7 @@ import urllib.request as rq
 from PIL import Image
 
 from utils.defines import API_HOST, GET_CLOTHES_ROUTE
-from utils.utils import get_requests
+from utils.utils import set_basic_config, get_requests
 
 def run() -> None:
     """
@@ -214,41 +212,5 @@ def main(port: int) -> None:
 
 
 if __name__ == '__main__':
-    # Page name
-    st.set_page_config(
-        page_title="Recherche vêtements",
-        layout="wide"
-    )
-
-    # Get arguments
-    parser = argparse.ArgumentParser(description="StreamlitSales")
-    parser.add_argument(
-        "-p",
-        "--port",
-        action="store",
-        default=8000,
-        help="Specify API port",
-        required=False
-    )
-    parser.add_argument(
-        "-l",
-        "--log",
-        action="store",
-        default="streamlit_sales.log",
-        help="Specify output log file",
-        required=False
-    )
-
-    args = parser.parse_args()
-
-    # Set timezone to UTC
-    os.environ["TZ"] = "UTC"
-    time.tzset()
-
-    logging.basicConfig(
-        filename=args.log,
-        level=logging.INFO,
-        format="%(asctime)s -- %(filename)s -- %(funcName)s -- %(levelname)s -- %(message)s"
-    )
-
-    main(args.port)
+    api_port, _ = set_basic_config("Recherche vêtements")
+    main(api_port)
