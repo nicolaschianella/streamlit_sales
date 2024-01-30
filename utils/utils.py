@@ -64,11 +64,11 @@ def set_basic_config(page_name: str) -> tuple[int, str]:
 
     return args.port, args.log
 
-def get_requests(port: int) -> None:
+def get_requests(port: int) -> bool:
     """
     Acquires available clothes requests using our API and put them in st.session_state.
     :param port: int, API port to use
-    :return: None
+    :return: bool, whether we display requests data_editor or not (page "Edition requêtes")
     """
     logging.info("Getting requests")
 
@@ -79,15 +79,18 @@ def get_requests(port: int) -> None:
         if available_requests.status_code != 200:
             logging.error(f"There was an issue while acquiring requests: {available_requests.json()['message']}")
             st.write(f"Oops ! Il y a eu un souci avec l'acquisition des recherches : {available_requests.json()['message']}")
+            return True if available_requests.status_code == 404 else False
 
         # Case all good
         else:
             logging.info(f"Successfully retrieved requests: {available_requests.json()['data']['requests']}")
             st.session_state.requests = json.loads(available_requests.json()["data"]["requests"])
+            return True
 
     except requests.exceptions.ConnectionError:
         logging.error("API is down! Cannot proceed further")
         st.write(f"Oops ! L'API semble down.")
+        return False
 
 def clear_session_state() -> None:
     """
