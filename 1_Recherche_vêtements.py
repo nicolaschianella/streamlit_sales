@@ -145,7 +145,8 @@ def display_clothe(clothe: dict,
         # tiles[2].image(clothe["photo_url"], use_column_width=True)
         rq.urlretrieve(clothe["photo_url"], "clothe_image.png")
         img = Image.open("clothe_image.png")
-        tiles[2].image(img.resize((300, 300)))
+        img.thumbnail((400, 400))
+        tiles[2].image(img)
         os.remove("clothe_image.png")
         # Buttons
         tiles[3].link_button('Voir sur Vinted', clothe["url"])
@@ -205,11 +206,11 @@ def main(port: int) -> None:
 
             else:
                 # Case call successful - display everything on 3 columns
-                col1, col2, col3 = st.columns(3)
-                cols = [col1, col2, col3]
+                col1, col2 = st.columns(2)
+                cols = [col1, col2]
                 c = 0
                 for clothe, request_name in zip(st.session_state.result, st.session_state.corresponding_requests):
-                    with cols[c % 3]:
+                    with cols[c % 2]:
                         display_clothe(clothe, request_name)
                         c += 1
 
