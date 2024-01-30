@@ -53,9 +53,11 @@ def main(port: int) -> None:
     """
     # Load requests if this is the first visited page
     if "requests" not in st.session_state:
+        st.session_state.requests = None
         get_requests(port)
 
-    display_requests()
+    if st.session_state.requests is not None:
+        display_requests()
 
 
 if __name__ == '__main__':
