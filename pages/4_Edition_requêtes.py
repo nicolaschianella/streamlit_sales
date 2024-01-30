@@ -24,7 +24,9 @@ def display_requests() -> None:
     for_reqs = format_requests()
     logging.info(f"Displaying requests: {for_reqs}")
     # Build the corresponding DataFrame and display it
-    df_req = pd.DataFrame(for_reqs)
+    df_req = pd.DataFrame(for_reqs) if for_reqs else pd.DataFrame({},
+                                                                  columns=[MAPPER_REQUESTS[key]
+                                                                           for key in MAPPER_REQUESTS])
     edited_df = st.data_editor(df_req, num_rows="dynamic")
 
 def format_requests() -> list[dict]:
@@ -32,16 +34,21 @@ def format_requests() -> list[dict]:
     Format the st.session_state.requests using the MAPPER_REQUESTS dictionary
     :return: list[dict], list of formatted requests dictionary
     """
-    requests = st.session_state.requests.copy()
-    for_reqs = []
+    try:
+        requests = st.session_state.requests.copy()
+        for_reqs = []
 
-    logging.info(f"Formatting requests: {requests}")
+        logging.info(f"Formatting requests: {requests}")
 
-    # Use mapper to get proper displayed names
-    for request in requests:
-        for_reqs.append({MAPPER_REQUESTS[key]: request[key] for key in MAPPER_REQUESTS})
+        # Use mapper to get proper displayed names
+        for request in requests:
+            for_reqs.append({MAPPER_REQUESTS[key]: request[key] for key in MAPPER_REQUESTS})
 
-    logging.info(f"Successfully formatted requests: {for_reqs}")
+        logging.info(f"Successfully formatted requests: {for_reqs}")
+
+    except AttributeError:
+        logging.warning("No requests found")
+        for_reqs = None
 
     return for_reqs
 
@@ -56,8 +63,7 @@ def main(port: int) -> None:
         st.session_state.requests = None
         get_requests(port)
 
-    if st.session_state.requests is not None:
-        display_requests()
+    display_requests()
 
 
 if __name__ == '__main__':
