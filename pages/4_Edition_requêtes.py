@@ -58,12 +58,12 @@ def main(port: int) -> None:
     :param port: int, API port to use
     :return: None
     """
-    # Load requests if this is the first visited page
-    if "requests" not in st.session_state:
-        st.session_state.requests = None
-        get_requests(port)
+    # Reset requests and reload them
+    st.session_state.requests = None
 
-    display_requests()
+    # Display only if everything is OK or if we have no requests in DB
+    if get_requests(port):
+        display_requests()
 
 
 if __name__ == '__main__':
