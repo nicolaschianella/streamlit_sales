@@ -176,7 +176,7 @@ def main(port: int) -> None:
         st.session_state.selected_requests = None
 
     # get all the available requests
-    get_requests(port)
+    _ = get_requests(port)
 
     if st.session_state.requests:
         # Requests selector
