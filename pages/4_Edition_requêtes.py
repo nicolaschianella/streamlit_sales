@@ -7,11 +7,13 @@
 # Created:   23 January 2024
 #
 ###############################################################################
+import time
+
 import streamlit as st
 import pandas as pd
 import logging
 
-from utils.utils import set_basic_config, get_requests
+from utils.utils import set_basic_config, get_requests, clear_session_state
 from utils.defines import MAPPER_REQUESTS, MAPPER_STATUS_IDS, STATUS_IDS_KEY, BRAND_IDS_KEY, CONFIG, BRANDS
 
 
@@ -37,11 +39,13 @@ def display_requests() -> None:
                                                       default=False)
 
     # Display the final editable DataFrame
-    edited_df = st.data_editor(df_req,
-                               column_config=config,
-                               # Hide _id column, but we need the info to update our DB
-                               column_order=[col for col in columns if col != "_id"],
-                               num_rows="dynamic")
+    st.session_state.displayed = st.data_editor(df_req,
+                                                column_config=config,
+                                                disabled=st.session_state.run_save,
+                                                on_change=modify_df,
+                                                # Hide _id column, but we need the info to update our DB
+                                                column_order=[col for col in columns if col != "_id"],
+                                                num_rows="dynamic")
 
 def format_requests() -> list[dict]:
     """
@@ -83,18 +87,63 @@ def format_requests() -> list[dict]:
 
     return for_reqs
 
+def run_save() -> None:
+    """
+    Disables editing of the DataFrame and the corresponding save button
+    :return: None
+    """
+    logging.info("Saving data in Mongo")
+    st.session_state.not_modified = True
+    st.session_state.run_save = True
+
+def modify_df() -> None:
+    """
+    Enables save button
+    :return: None
+    """
+    st.session_state.not_modified = False
+
+def save_requests() -> None:
+    """
+    Performs the saving of requests in DB after formatting them
+    :return: None
+    """
+    # TODO add formatting and saving of the DataFrame
+
+    # Clear cache and reload page
+    clear_session_state()
+    st.rerun()
+
+
 def main(port: int) -> None:
     """
     Main function running this page.
     :param port: int, API port to use
     :return: None
     """
-    # Reset requests and reload them
-    st.session_state.requests = None
+    if 'run_save' not in st.session_state:
+        # Reset requests and reload them
+        st.session_state.requests = None
+        # Disable DataFrame editing
+        st.session_state.run_save = False
+        # Whether the DataFrame has been modified or not (enables save button)
+        st.session_state.not_modified = True
+        # Edited DataFrame to be saved
+        st.session_state.displayed = None
 
     # Display only if everything is OK or if we have no requests in DB
     if get_requests(port):
         display_requests()
+
+    if st.session_state.displayed is not None:
+        # Add button to save changes
+        st.button("Sauver les recherches",
+                  on_click=run_save,
+                  type="primary",
+                  disabled=st.session_state.not_modified)
+
+        if st.session_state.run_save:
+            save_requests()
 
 
 if __name__ == '__main__':
