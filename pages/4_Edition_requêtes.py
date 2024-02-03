@@ -7,13 +7,12 @@
 # Created:   23 January 2024
 #
 ###############################################################################
-import time
-
 import streamlit as st
+from streamlit_js_eval import streamlit_js_eval
 import pandas as pd
 import logging
 
-from utils.utils import set_basic_config, get_requests, clear_session_state
+from utils.utils import set_basic_config, get_requests
 from utils.defines import MAPPER_REQUESTS, MAPPER_STATUS_IDS, STATUS_IDS_KEY, BRAND_IDS_KEY, CONFIG, BRANDS
 
 
@@ -110,9 +109,8 @@ def save_requests() -> None:
     """
     # TODO add formatting and saving of the DataFrame
 
-    # Clear cache and reload page
-    clear_session_state()
-    st.rerun()
+    # Reload page
+    streamlit_js_eval(js_expressions="parent.window.location.reload()")
 
 
 def main(port: int) -> None:
