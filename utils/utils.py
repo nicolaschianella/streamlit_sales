@@ -99,3 +99,5 @@ def clear_session_state() -> None:
     """
     for key in st.session_state:
         del st.session_state[key]
+
+    logging.info("Successfully cleared session state")
