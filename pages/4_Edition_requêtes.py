@@ -12,7 +12,7 @@ import pandas as pd
 import logging
 
 from utils.utils import set_basic_config, get_requests
-from utils.defines import MAPPER_REQUESTS
+from utils.defines import MAPPER_REQUESTS, MAPPER_STATUS_IDS, STATUS_IDS_KEY, BRAND_IDS_KEY, CONFIG, BRANDS
 
 
 def display_requests() -> None:
@@ -23,11 +23,25 @@ def display_requests() -> None:
     # Format requests
     for_reqs = format_requests()
     logging.info(f"Displaying requests: {for_reqs}")
+
     # Build the corresponding DataFrame and display it
+    columns = [MAPPER_REQUESTS[key] for key in MAPPER_REQUESTS] + list(MAPPER_STATUS_IDS.keys())
     df_req = pd.DataFrame(for_reqs) if for_reqs else pd.DataFrame({},
-                                                                  columns=[MAPPER_REQUESTS[key]
-                                                                           for key in MAPPER_REQUESTS])
-    edited_df = st.data_editor(df_req, num_rows="dynamic")
+                                                                  columns=columns)
+
+    # Add values for clothes states
+    config = CONFIG.copy()
+    for key, value in MAPPER_STATUS_IDS.items():
+        config[key] = st.column_config.CheckboxColumn(key,
+                                                      help="Cocher pour appliquer dans la recherche",
+                                                      default=False)
+
+    # Display the final editable DataFrame
+    edited_df = st.data_editor(df_req,
+                               column_config=config,
+                               # Hide _id column, but we need the info to update our DB
+                               column_order=[col for col in columns if col != "_id"],
+                               num_rows="dynamic")
 
 def format_requests() -> list[dict]:
     """
@@ -42,7 +56,24 @@ def format_requests() -> list[dict]:
 
         # Use mapper to get proper displayed names
         for request in requests:
-            for_reqs.append({MAPPER_REQUESTS[key]: request[key] for key in MAPPER_REQUESTS})
+            for_req = {}
+
+            # Add regular columns
+            for key in MAPPER_REQUESTS:
+                # Case for brands - use mapper to display brand
+                if key == BRAND_IDS_KEY:
+                    inv_brands = {v: k for k, v in BRANDS.items()}
+                    for_req[MAPPER_REQUESTS[key]] = inv_brands[request[key]] if request[key] != "" else ""
+                    continue
+                # Other cases
+                for_req[MAPPER_REQUESTS[key]] = request[key]
+
+            # Add clothes states keys
+            clothes_states = request[STATUS_IDS_KEY].split(",")
+            for key, value in MAPPER_STATUS_IDS.items():
+                for_req[key] = value in clothes_states
+
+            for_reqs.append(for_req)
 
         logging.info(f"Successfully formatted requests: {for_reqs}")
 
