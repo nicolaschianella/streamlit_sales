@@ -11,9 +11,11 @@ import streamlit as st
 from streamlit_js_eval import streamlit_js_eval
 import pandas as pd
 import logging
+import requests
 
 from utils.utils import set_basic_config, get_requests
-from utils.defines import MAPPER_REQUESTS, MAPPER_STATUS_IDS, STATUS_IDS_KEY, BRAND_IDS_KEY, CONFIG, BRANDS
+from utils.defines import (MAPPER_REQUESTS, MAPPER_STATUS_IDS, STATUS_IDS_KEY, BRAND_IDS_KEY, CONFIG, BRANDS,
+                           API_HOST, UPDATE_REQUESTS_ROUTE)
 
 
 def display_requests() -> None:
@@ -97,11 +99,30 @@ def modify_df() -> None:
     """
     st.session_state.not_modified = False
 
+def concat_clothe_states(row):
+    """
+    Small function to format back clothe states to its original format
+    :param row: DataFrame row to be reformatted
+    :return: new reformatted column value
+    """
+    final_value = ""
+
+    for key, value in MAPPER_STATUS_IDS.items():
+        if row[key]:
+            final_value += value
+            final_value += ","
+
+    final_value = final_value[:-1]
+
+    return final_value
+
 def format_requests_back() -> None:
     """
     Formats the DataFrame back to its original format to be sent to the API
     :return: None
     """
+    logging.info("Starting formatting requests")
+
     # Get DataFrame and modified/added/deleted rows
     displayed, df = st.session_state.displayed, st.session_state.df
 
@@ -135,15 +156,45 @@ def format_requests_back() -> None:
         st.session_state.not_modified = False
         st.rerun()
 
-def save_requests() -> None:
+    # If everything is good, proceed with reformatting
+    # 1. Concatenate all clothes status into one column
+    displayed_edited[STATUS_IDS_KEY] = displayed_edited.apply(lambda row: concat_clothe_states(row), axis=1)
+    displayed_edited.drop(MAPPER_STATUS_IDS.keys(), axis=1, inplace=True)
+    logging.info("Successfully formatted clothe states")
+    # 2. Change brands to corresponding id
+    displayed_edited[BRAND_IDS_KEY] = displayed_edited[MAPPER_REQUESTS[BRAND_IDS_KEY]].map(BRANDS)
+    displayed_edited.drop(MAPPER_REQUESTS[BRAND_IDS_KEY], axis=1, inplace=True)
+    logging.info("Successfully formatted brands names")
+    # 3. Change remaining column names
+    displayed_edited.rename(columns={v: k for k, v in MAPPER_REQUESTS.items()}, inplace=True)
+    st.session_state.requests_to_be_saved = displayed_edited.fillna("").to_json(orient="records")
+
+    logging.info(f"Requests successfully formatted: {st.session_state.requests_to_be_saved}")
+
+def save_requests(port) -> None:
     """
     Performs the saving of requests in DB after formatting them
+    :param port: int, API port to use
     :return: None
     """
-    format_requests_back()
+    try:
+        # Format requests
+        format_requests_back()
 
-    # Reload page
-    streamlit_js_eval(js_expressions="parent.window.location.reload()")
+        # Call the API
+        r = requests.post(f"{API_HOST}:{port}/{UPDATE_REQUESTS_ROUTE}", data=st.session_state.requests_to_be_saved)
+
+        if r.status_code == 200:
+            logging.info("Requests updated successfully, reloading page")
+            # Reload page
+            streamlit_js_eval(js_expressions="parent.window.location.reload()")
+
+        else:
+            # Error message
+            st.write("Il y a eu un souci avec la mise à jour des requêtes. Merci de contacter les administrateurs.")
+
+    except Exception as e:
+        logging.error(f"An error occurred while saving requests: {e}")
 
 
 def main(port: int) -> None:
@@ -163,6 +214,8 @@ def main(port: int) -> None:
         st.session_state.displayed = None
         # Whether new added rows have empty names
         st.session_state.df_empty_name = False
+        # Final requests to be sent to the API
+        st.session_state.requests_to_be_saved = None
 
     # Display only if everything is OK or if we have no requests in DB
     if st.session_state.displayed is None and get_requests(port):
@@ -190,7 +243,7 @@ def main(port: int) -> None:
             st.write('Certains noms sont manquants !')
 
         if st.session_state.run_save:
-            save_requests()
+            save_requests(port)
 
 
 if __name__ == '__main__':
