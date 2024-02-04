@@ -8,6 +8,7 @@
 #
 ###############################################################################
 import streamlit as st
+from datetime import datetime
 
 
 # API Host (port handled in entry point parameters)
@@ -59,16 +60,18 @@ BRANDS = {
 # in MAPPER_STATUS_IDS
 CONFIG = {
     "Nom": st.column_config.TextColumn("Nom",
-                                       help="Nom de la recherche dans 'Recherche vêtements'"),
+                                       help="Nom de la recherche dans 'Recherche vêtements' - OBLIGATOIRE"),
 
     "Date de création": st.column_config.TextColumn("Date de création",
                                                     disabled=True,
-                                                    help="Se mettra à jour automatiquement"),
+                                                    help="Timezone UTC",
+                                                    default=datetime.now().strftime("%Y-%m-%dT%H:%M:%S.%f")),
 
     "Nb articles": st.column_config.NumberColumn("Nb articles",
                                                  help="Nombre d'articles par recherche (max 96)",
                                                  min_value=1,
-                                                 max_value=96),
+                                                 max_value=96,
+                                                 default=10),
 
     "Mots clés": st.column_config.TextColumn("Mots clés",
                                              help="Recherche mots clés comme sur le site"),
