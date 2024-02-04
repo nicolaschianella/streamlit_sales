@@ -30,7 +30,8 @@ MAPPER_REQUESTS = {
     "search_text": "Mots clés",
     "brand_ids": "Marque",
     "price_from": "Prix minimum",
-    "price_to": "Prix maximum"
+    "price_to": "Prix maximum",
+    "state": "Etat requête"
 }
 # status_ids is an exception since we want multiple checkbox columns, one for each clothe state
 STATUS_IDS_KEY = "status_ids"
@@ -66,8 +67,8 @@ CONFIG = {
 
     "Date de création": st.column_config.TextColumn("Date de création",
                                                     disabled=True,
-                                                    help="Timezone UTC",
-                                                    default=datetime.now().strftime("%Y-%m-%dT%H:%M:%S.%f")),
+                                                    help="Timezone UTC - màj auto",
+                                                    default=""),
 
     "Nb articles": st.column_config.NumberColumn("Nb articles",
                                                  help="Nombre d'articles par recherche (max 96)",
@@ -88,5 +89,11 @@ CONFIG = {
 
     "Prix maximum": st.column_config.NumberColumn("Prix maximum",
                                                   min_value=0,
-                                                  help="Ne s'affiche pas si 0")
+                                                  help="Ne s'affiche pas si 0"),
+
+    "Etat requête": st.column_config.SelectboxColumn("Etat requête",
+                                                     options=["active", 'inactive'],
+                                                     help="Si la requête doit apparaître dans la page "
+                                                          "'Recherche vêtements'",
+                                                     default="active")
 }
