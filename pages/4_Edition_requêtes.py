@@ -130,6 +130,7 @@ def main(port: int) -> None:
 
     if st.session_state.displayed is not None:
 
+        # Hide DataFrame when saving
         if not st.session_state.run_save:
             st.data_editor(st.session_state.displayed,
                            column_config=st.session_state.config,
@@ -139,8 +140,6 @@ def main(port: int) -> None:
                            num_rows="dynamic",
                            hide_index=True,
                            key="df")
-
-        st.write(st.session_state.df)
 
         # Add button to save changes
         st.button("Sauver les recherches",
