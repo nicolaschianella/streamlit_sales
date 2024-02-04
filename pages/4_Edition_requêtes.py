@@ -18,7 +18,7 @@ from utils.defines import MAPPER_REQUESTS, MAPPER_STATUS_IDS, STATUS_IDS_KEY, BR
 
 def display_requests() -> None:
     """
-    Display the available requests in a pandas DataFrame with a deletion option
+    Put DataFrame to be displayed, config and columns in st.session_state
     :return: None
     """
     # Format requests
@@ -37,14 +37,9 @@ def display_requests() -> None:
                                                       help="Cocher pour appliquer dans la recherche",
                                                       default=True)
 
-    # Display the final editable DataFrame
-    st.session_state.displayed = st.data_editor(df_req,
-                                                column_config=config,
-                                                disabled=st.session_state.run_save,
-                                                on_change=modify_df,
-                                                # Hide _id column, but we need the info to update our DB
-                                                column_order=[col for col in columns if col != "_id"],
-                                                num_rows="dynamic")
+    # Put the final editable DataFrame, config and columns in st.session_state
+    st.session_state.displayed = df_req
+    st.session_state.config, st.session_state.columns = config, columns
 
 def format_requests() -> list[dict]:
     """
@@ -130,10 +125,25 @@ def main(port: int) -> None:
         st.session_state.displayed = None
 
     # Display only if everything is OK or if we have no requests in DB
-    if get_requests(port):
+    if st.session_state.displayed is None and get_requests(port):
         display_requests()
 
     if st.session_state.displayed is not None:
+        # st.session_state.displayed.reset_index(inplace=True)
+        df = st.data_editor(st.session_state.displayed,
+                       column_config=st.session_state.config,
+                       disabled=st.session_state.run_save,
+                       on_change=modify_df,
+                       # Hide _id column, but we need the info to update our DB
+                       column_order=[col for col in st.session_state.columns if col != "_id"],
+                       num_rows="dynamic",
+                       hide_index=True)
+
+        # Update displayed DataFrame with new values
+        if not df.equals(st.session_state.displayed) and not df.empty:
+            st.session_state.displayed = df
+            st.rerun()
+
         # Add button to save changes
         st.button("Sauver les recherches",
                   on_click=run_save,
