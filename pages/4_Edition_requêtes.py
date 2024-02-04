@@ -124,7 +124,7 @@ def format_requests_back() -> None:
     # Finally add new rows
     if df["added_rows"]:
         for new_row in df["added_rows"]:
-            displayed_edited.loc[len(displayed_edited)] = new_row
+            displayed_edited.loc[len(displayed_edited)+1] = new_row
             displayed_edited.fillna("", inplace=True)
 
     # Check if "Name" row contains None: if yes, write error message and enable button/editing again
