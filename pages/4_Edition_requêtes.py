@@ -170,16 +170,15 @@ def main(port: int) -> None:
 
     if st.session_state.displayed is not None:
 
-        # Hide DataFrame when saving
-        if not st.session_state.run_save:
-            st.data_editor(st.session_state.displayed,
-                           column_config=st.session_state.config,
-                           on_change=modify_df,
-                           # Hide _id column, but we need the info to update our DB
-                           column_order=[col for col in st.session_state.columns if col != "_id"],
-                           num_rows="dynamic",
-                           hide_index=True,
-                           key="df")
+        # Display DataFrame
+        st.data_editor(st.session_state.displayed,
+                       column_config=st.session_state.config,
+                       on_change=modify_df,
+                       # Hide _id column, but we need the info to update our DB
+                       column_order=[col for col in st.session_state.columns if col != "_id"],
+                       num_rows="dynamic",
+                       hide_index=True,
+                       key="df")
 
         # Add button to save changes
         st.button("Sauver les recherches",
