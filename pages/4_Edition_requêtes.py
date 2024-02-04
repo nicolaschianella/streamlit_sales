@@ -86,7 +86,7 @@ def run_save() -> None:
     Disables editing of the DataFrame and the corresponding save button
     :return: None
     """
-    logging.info("Saving data in Mongo")
+    logging.info("Saving requests in Mongo")
     st.session_state.not_modified = True
     st.session_state.run_save = True
 
@@ -97,12 +97,50 @@ def modify_df() -> None:
     """
     st.session_state.not_modified = False
 
+def format_requests_back() -> None:
+    """
+    Formats the DataFrame back to its original format to be sent to the API
+    :return: None
+    """
+    # Get DataFrame and modified/added/deleted rows
+    displayed, df = st.session_state.displayed, st.session_state.df
+
+    # Build the edited DataFrame
+    displayed_edited = displayed.copy()
+
+    # First remove all the rows removed
+    if df["deleted_rows"]:
+        index = displayed_edited.iloc[df["deleted_rows"]].index
+        displayed_edited.drop(index, inplace=True)
+
+    # Now edit rows
+    if df["edited_rows"]:
+        # Locate changes for one row
+        for key, value in df["edited_rows"].items():
+            # Locate all columns changes and apply them
+            for col, new_value in df["edited_rows"][key].items():
+                displayed_edited.loc[key, col] = new_value
+
+    # Finally add new rows
+    if df["added_rows"]:
+        for new_row in df["added_rows"]:
+            displayed_edited.loc[len(displayed_edited)] = new_row
+            displayed_edited.fillna("", inplace=True)
+
+    # Check if "Name" row contains None: if yes, write error message and enable button/editing again
+    if "" in list(displayed_edited["Nom"]):
+        logging.warning("Names missing in DataFrame! Not performing save into Mongo")
+        st.session_state.df_empty_name = True
+        st.session_state.run_save = False
+        st.session_state.not_modified = False
+        st.rerun()
+
 def save_requests() -> None:
     """
     Performs the saving of requests in DB after formatting them
     :return: None
     """
-    # TODO add formatting and saving of the DataFrame
+    format_requests_back()
 
     # Reload page
     streamlit_js_eval(js_expressions="parent.window.location.reload()")
@@ -123,6 +161,8 @@ def main(port: int) -> None:
         st.session_state.not_modified = True
         # Edited DataFrame to be saved
         st.session_state.displayed = None
+        # Whether new added rows have empty names
+        st.session_state.df_empty_name = False
 
     # Display only if everything is OK or if we have no requests in DB
     if st.session_state.displayed is None and get_requests(port):
@@ -146,6 +186,9 @@ def main(port: int) -> None:
                   on_click=run_save,
                   type="primary",
                   disabled=st.session_state.not_modified)
+
+        if st.session_state.df_empty_name:
+            st.write('Certains noms sont manquants !')
 
         if st.session_state.run_save:
             save_requests()
