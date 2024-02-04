@@ -17,6 +17,8 @@ API_HOST = "http://127.0.0.1"
 GET_CLOTHES_ROUTE = "api/operations/get_clothes"
 # Route to get_requests
 GET_REQUESTS_ROUTE = "api/operations/get_requests"
+# Route to update_requests
+UPDATE_REQUESTS_ROUTE = "api/operations/update_requests"
 # Mapper {fields_to_be_displayed: displayed_value} for requests edition
 # These will also be the available fields to fill in to create a new request
 MAPPER_REQUESTS = {
