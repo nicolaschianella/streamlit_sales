@@ -35,7 +35,7 @@ def display_requests() -> None:
     for key, value in MAPPER_STATUS_IDS.items():
         config[key] = st.column_config.CheckboxColumn(key,
                                                       help="Cocher pour appliquer dans la recherche",
-                                                      default=False)
+                                                      default=True)
 
     # Display the final editable DataFrame
     st.session_state.displayed = st.data_editor(df_req,
