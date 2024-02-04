@@ -129,20 +129,18 @@ def main(port: int) -> None:
         display_requests()
 
     if st.session_state.displayed is not None:
-        # st.session_state.displayed.reset_index(inplace=True)
-        df = st.data_editor(st.session_state.displayed,
-                       column_config=st.session_state.config,
-                       disabled=st.session_state.run_save,
-                       on_change=modify_df,
-                       # Hide _id column, but we need the info to update our DB
-                       column_order=[col for col in st.session_state.columns if col != "_id"],
-                       num_rows="dynamic",
-                       hide_index=True)
 
-        # Update displayed DataFrame with new values
-        if not df.equals(st.session_state.displayed) and not df.empty:
-            st.session_state.displayed = df
-            st.rerun()
+        if not st.session_state.run_save:
+            st.data_editor(st.session_state.displayed,
+                           column_config=st.session_state.config,
+                           on_change=modify_df,
+                           # Hide _id column, but we need the info to update our DB
+                           column_order=[col for col in st.session_state.columns if col != "_id"],
+                           num_rows="dynamic",
+                           hide_index=True,
+                           key="df")
+
+        st.write(st.session_state.df)
 
         # Add button to save changes
         st.button("Sauver les recherches",
