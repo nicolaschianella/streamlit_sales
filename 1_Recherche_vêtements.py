@@ -101,11 +101,13 @@ def format_clothes(clothes: list,
                                        .astimezone(timezone("Europe/Brussels")))
         if item not in clothes:
             clothes.append(item)
+            st.session_state.autobuy[item["id"]] = False
         else:
             logging.warning(f"Item encountered more than once, skipping: {item}")
 
     return clothes
 
+@st.cache_resource
 def display_clothe(clothe: dict,
                    request: dict) -> None:
     """
@@ -116,45 +118,37 @@ def display_clothe(clothe: dict,
     """
     logging.info(f"Displaying clothe: {clothe}")
 
-    with st.container(border=True):
-        # Generate grid
-        tiles = []
-        row1 = st.columns(1) # For title
-        row2 = st.columns(2) # (Date, Brand, Size, Status, Price, Favourites, Views) + image
-        row3 = st.columns(2) # Button to visit link, AutoBuy
-        row4 = st.columns(1) # Corresponding request_name
+    # Generate grid
+    tiles = []
+    row1 = st.columns(1) # For title
+    row2 = st.columns(2) # (Date, Brand, Size, Status, Price, Favourites, Views) + image
 
-        for col in row1 + row2 + row3 + row4:
-            tiles.append(col.container())
-        # Display elements
-        # Title - add suspicious photo in case
-        if not clothe["is_photo_suspicious"]:
-            tiles[0].subheader(clothe["title"])
-        else:
-            tiles[0].subheader(clothe["title"] + " - PHOTO SUSPICIEUSE")
-        # Date, Brand, Size, Status, Price, Favourites, Views
-        tiles[1].markdown(f"**Date:** {clothe['created_at_datetime']}")
-        tiles[1].markdown(f"**Marque:** {clothe['brand_title']}")
-        tiles[1].markdown(f"**Taille:** {clothe['size_title']}")
-        tiles[1].markdown(f"**Etat:** {clothe['status']}")
-        tiles[1].markdown(f"**Prix:** {clothe['total_item_price']} {clothe['currency']}  "
-                          f"({clothe['price_no_fee']} + {clothe['service_fee']} fee)")
-        tiles[1].markdown(f"**Nombre de vues:** {clothe['view_count']}")
-        tiles[1].markdown(f"**Nombre de favoris:** {clothe['favourite_count']}")
-        # Image
-        # tiles[2].image(clothe["photo_url"], use_column_width=True)
-        rq.urlretrieve(clothe["photo_url"], "clothe_image.png")
-        img = Image.open("clothe_image.png")
-        img.thumbnail((400, 400))
-        tiles[2].image(img)
-        os.remove("clothe_image.png")
-        # Buttons
-        tiles[3].link_button('Voir sur Vinted', clothe["url"])
-        tiles[4].button('AutoBuy', type="primary", key=str(clothe["id"]))
-        # Corresponding request name
-        tiles[5].markdown(f"**Via recherche:** {request['name']}")
+    for col in row1 + row2:
+        tiles.append(col.container())
+    # Display elements
+    # Title - add suspicious photo in case
+    if not clothe["is_photo_suspicious"]:
+        tiles[0].subheader(clothe["title"])
+    else:
+        tiles[0].subheader(clothe["title"] + " - PHOTO SUSPICIEUSE")
+    # Date, Brand, Size, Status, Price, Favourites, Views
+    tiles[1].markdown(f"**Date:** {clothe['created_at_datetime']}")
+    tiles[1].markdown(f"**Marque:** {clothe['brand_title']}")
+    tiles[1].markdown(f"**Taille:** {clothe['size_title']}")
+    tiles[1].markdown(f"**Etat:** {clothe['status']}")
+    tiles[1].markdown(f"**Prix:** {clothe['total_item_price']} {clothe['currency']}  "
+                      f"({clothe['price_no_fee']} + {clothe['service_fee']} fee)")
+    tiles[1].markdown(f"**Nombre de vues:** {clothe['view_count']}")
+    tiles[1].markdown(f"**Nombre de favoris:** {clothe['favourite_count']}")
+    # Image
+    rq.urlretrieve(clothe["photo_url"], "clothe_image.png")
+    img = Image.open("clothe_image.png")
+    img.thumbnail((400, 400))
+    tiles[2].image(img)
+    os.remove("clothe_image.png")
 
-    return
+def autobuy(clothe, request):
+    st.session_state.autobuy[clothe["id"]] = True
 
 def main(port: int) -> None:
     """
@@ -174,6 +168,8 @@ def main(port: int) -> None:
         st.session_state.requests = None
         # Current selected requests in the selector
         st.session_state.selected_requests = None
+        # Activate or not autobuy button
+        st.session_state.autobuy = {}
 
     # get all the available requests
     _ = get_requests(port)
@@ -205,14 +201,29 @@ def main(port: int) -> None:
                 st.write(st.session_state.result)
 
             else:
-                # Case call successful - display everything on 3 columns
+                # Case call successful - display everything on 2 columns
                 col1, col2 = st.columns(2)
                 cols = [col1, col2]
                 c = 0
                 for clothe, request in zip(st.session_state.result, st.session_state.corresponding_requests):
                     with cols[c % 2]:
-                        display_clothe(clothe, request)
-                        c += 1
+                        with st.container(border=True):
+                            # Cache clothes display
+                            display_clothe(clothe, request)
+                            # Format last elements nicely
+                            row = st.columns(1) + st.columns(2)
+                            # Button link URL
+                            row[0].link_button('Voir sur Vinted', clothe["url"])
+                            # Corresponding request name
+                            row[1].markdown(f"**Via recherche:** {request['name']}")
+                            # Autobuy
+                            row[2].button('AutoBuy',
+                                            type="primary",
+                                            key=str(clothe["id"]),
+                                            on_click=autobuy,
+                                            args=(clothe, request),
+                                            disabled=st.session_state.autobuy[clothe["id"]])
+                            c += 1
 
 
 if __name__ == '__main__':
