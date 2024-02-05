@@ -31,7 +31,7 @@ MAPPER_REQUESTS = {
     "brand_ids": "Marque",
     "price_from": "Prix minimum",
     "price_to": "Prix maximum",
-    "state": "Etat requête"
+    "state": "Etat recherche"
 }
 # status_ids is an exception since we want multiple checkbox columns, one for each clothe state
 STATUS_IDS_KEY = "status_ids"
@@ -63,7 +63,7 @@ BRANDS = {
 # in MAPPER_STATUS_IDS
 CONFIG = {
     "Nom": st.column_config.TextColumn("Nom",
-                                       help="Nom de la recherche dans 'Recherche vêtements' - OBLIGATOIRE"),
+                                       help="Nom de la recherche dans 'Recherche vêtements' (DEFAULT si vide)"),
 
     "Date de création": st.column_config.TextColumn("Date de création",
                                                     disabled=True,
@@ -85,15 +85,15 @@ CONFIG = {
 
     "Prix minimum": st.column_config.NumberColumn("Prix minimum",
                                                   min_value=0,
-                                                  help="Ne s'affiche pas si 0"),
+                                                  help="Prix minimum à appliquer (hors fee)"),
 
     "Prix maximum": st.column_config.NumberColumn("Prix maximum",
                                                   min_value=0,
-                                                  help="Ne s'affiche pas si 0"),
+                                                  help="Prix maximum à appliquer (hors fee)"),
 
-    "Etat requête": st.column_config.SelectboxColumn("Etat requête",
-                                                     options=["active", 'inactive'],
-                                                     help="Si la requête doit apparaître dans la page "
+    "Etat recherche": st.column_config.SelectboxColumn("Etat recherche",
+                                                       options=["active", 'inactive'],
+                                                       help="Si la recherche doit apparaître dans la page "
                                                           "'Recherche vêtements'",
-                                                     default="active")
+                                                       default="active")
 }
