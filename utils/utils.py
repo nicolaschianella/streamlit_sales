@@ -64,10 +64,12 @@ def set_basic_config(page_name: str) -> tuple[int, str]:
 
     return args.port, args.log
 
-def get_requests(port: int) -> bool:
+def get_requests(port: int,
+                 filter_on_active: bool = True) -> bool:
     """
     Acquires available clothes requests using our API and put them in st.session_state.
     :param port: int, API port to use
+    :param filter_on_active: bool, to only filter on active requests (page "Recherche vêtements")
     :return: bool, whether we display requests data_editor or not (page "Edition requêtes")
     """
     logging.info("Getting requests")
@@ -84,7 +86,22 @@ def get_requests(port: int) -> bool:
         # Case all good
         else:
             logging.info(f"Successfully retrieved requests: {available_requests.json()['data']['requests']}")
-            st.session_state.requests = json.loads(available_requests.json()["data"]["requests"])
+
+            if filter_on_active:
+                filtered_on_active = []
+
+                for request in json.loads(available_requests.json()['data']['requests']):
+                    if request["state"] == "active":
+                        filtered_on_active.append(request)
+
+                if not filtered_on_active:
+                    st.write("Aucune recherche active !")
+
+                st.session_state.requests = filtered_on_active
+
+            else:
+                st.session_state.requests = json.loads(available_requests.json()["data"]["requests"])
+
             return True
 
     except requests.exceptions.ConnectionError:
