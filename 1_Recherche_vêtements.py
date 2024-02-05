@@ -217,4 +217,6 @@ def main(port: int) -> None:
 
 if __name__ == '__main__':
     api_port, _ = set_basic_config("Recherche vêtements")
+    # To deactivate button in page "Edition requêtes"
+    st.session_state.not_modified = True
     main(api_port)
