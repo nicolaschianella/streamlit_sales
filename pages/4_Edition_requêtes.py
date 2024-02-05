@@ -12,6 +12,7 @@ from streamlit_js_eval import streamlit_js_eval
 import pandas as pd
 import logging
 import requests
+import json
 
 from utils.utils import set_basic_config, get_requests
 from utils.defines import (MAPPER_REQUESTS, MAPPER_STATUS_IDS, STATUS_IDS_KEY, BRAND_IDS_KEY, CONFIG, BRANDS,
@@ -125,49 +126,73 @@ def format_requests_back() -> None:
 
     # Get DataFrame and modified/added/deleted rows
     displayed, df = st.session_state.displayed, st.session_state.df
-
-    # Build the edited DataFrame
     displayed_edited = displayed.copy()
 
-    # First remove all the rows removed
-    if df["deleted_rows"]:
-        index = displayed_edited.iloc[df["deleted_rows"]].index
-        displayed_edited.drop(index, inplace=True)
+    # Define deleted, updated and added objects
+    # List of ids
+    deleted = []
+    # List of rows
+    updated = []
+    # List of rows
+    added = []
 
-    # Now edit rows
+    # Proceed with reformatting
+    # 1. Apply changes
     if df["edited_rows"]:
-        # Locate changes for one row
-        for key, value in df["edited_rows"].items():
-            # Locate all columns changes and apply them
-            for col, new_value in df["edited_rows"][key].items():
-                displayed_edited.loc[key, col] = new_value
-
-    # Finally add new rows
-    if df["added_rows"]:
-        for new_row in df["added_rows"]:
-            displayed_edited.loc[len(displayed_edited)+1] = new_row
-            displayed_edited.fillna("", inplace=True)
-
-    # Check if "Name" row contains None: if yes, write error message and enable button/editing again
-    if "" in list(displayed_edited["Nom"]):
-        logging.warning("Names missing in DataFrame! Not performing save into Mongo")
-        st.session_state.df_empty_name = True
-        st.session_state.run_save = False
-        st.session_state.not_modified = False
-        st.rerun()
-
-    # If everything is good, proceed with reformatting
-    # 1. Concatenate all clothes status into one column
+        index = displayed_edited.iloc[list(df["edited_rows"].keys())].index
+        for idx in index:
+            change = df["edited_rows"][idx]
+            displayed_edited.loc[idx, change.keys()] = change.values()
+    # 2. Concatenate all clothes status into one column
     displayed_edited[STATUS_IDS_KEY] = displayed_edited.apply(lambda row: concat_clothe_states(row), axis=1)
     displayed_edited.drop(MAPPER_STATUS_IDS.keys(), axis=1, inplace=True)
     logging.info("Successfully formatted clothe states")
-    # 2. Change brands to corresponding id
+    # 3. Change brands to corresponding id
     displayed_edited[BRAND_IDS_KEY] = displayed_edited[MAPPER_REQUESTS[BRAND_IDS_KEY]].map(BRANDS)
     displayed_edited.drop(MAPPER_REQUESTS[BRAND_IDS_KEY], axis=1, inplace=True)
     logging.info("Successfully formatted brands names")
-    # 3. Change remaining column names
+    # 4. Change remaining column names
     displayed_edited.rename(columns={v: k for k, v in MAPPER_REQUESTS.items()}, inplace=True)
-    st.session_state.requests_to_be_saved = displayed_edited.fillna("").to_json(orient="records")
+
+    # Get ids of deleted rows
+    if df["deleted_rows"]:
+        index = displayed_edited.iloc[df["deleted_rows"]].index
+        ids = list(displayed_edited.loc[index]["_id"])
+        deleted = ids
+
+    # Get updated rows
+    if df["edited_rows"]:
+        index = displayed_edited.iloc[list(df["edited_rows"].keys())].index
+        ids = list(displayed_edited.loc[index]["_id"])
+        # mapper = {id: value for id, value in zip(ids, list(df["edited_rows"].values()))}
+        for id in ids:
+            data = displayed_edited.loc[displayed_edited["_id"] == id].fillna("").to_dict(orient="records")[0]
+            # # Apply changes to variables
+            # changes = mapper[id]
+            # for key, new_value in changes.items():
+            #     data[key] = new_value
+            # Add missing _id key
+            data["id"] = id
+            updated.append(data)
+        logging.info(updated)
+
+    # Get new rows
+    if df["added_rows"]:
+        # Regular rows
+        inv_map = {v: k for k, v in MAPPER_REQUESTS.items()}
+
+        for row in df["added_rows"]:
+            added_dict = {inv_map[k]: v for k, v in row.items() if k in MAPPER_REQUESTS.values()}
+            # Brands mapping
+            if BRAND_IDS_KEY in added_dict.keys():
+                added_dict[BRAND_IDS_KEY] = BRANDS[added_dict[BRAND_IDS_KEY]]
+            # Clothe states
+            added_dict[STATUS_IDS_KEY] = concat_clothe_states(row)
+            added.append(added_dict)
+
+    st.session_state.requests_to_be_saved = {"deleted": deleted,
+                                             "added": added,
+                                             "updated": updated}
 
     logging.info(f"Requests successfully formatted: {st.session_state.requests_to_be_saved}")
 
@@ -182,7 +207,7 @@ def save_requests(port) -> None:
         format_requests_back()
 
         # Call the API
-        r = requests.post(f"{API_HOST}:{port}/{UPDATE_REQUESTS_ROUTE}", data=st.session_state.requests_to_be_saved)
+        r = requests.post(f"{API_HOST}:{port}/{UPDATE_REQUESTS_ROUTE}", data=json.dumps(st.session_state.requests_to_be_saved))
 
         if r.status_code == 200:
             logging.info("Requests updated successfully, reloading page")
@@ -192,6 +217,7 @@ def save_requests(port) -> None:
         else:
             # Error message
             st.write("Il y a eu un souci avec la mise à jour des requêtes. Merci de contacter les administrateurs.")
+            logging.error(f"Bad request: {r.text}")
 
     except Exception as e:
         logging.error(f"An error occurred while saving requests: {e}")
@@ -206,19 +232,17 @@ def main(port: int) -> None:
     if 'run_save' not in st.session_state:
         # Reset requests and reload them
         st.session_state.requests = None
-        # Disable DataFrame editing
+        # Run requests save
         st.session_state.run_save = False
         # Whether the DataFrame has been modified or not (enables save button)
         st.session_state.not_modified = True
         # Edited DataFrame to be saved
         st.session_state.displayed = None
-        # Whether new added rows have empty names
-        st.session_state.df_empty_name = False
         # Final requests to be sent to the API
         st.session_state.requests_to_be_saved = None
 
     # Display only if everything is OK or if we have no requests in DB
-    if st.session_state.displayed is None and get_requests(port):
+    if st.session_state.displayed is None and get_requests(port, False):
         display_requests()
 
     if st.session_state.displayed is not None:
@@ -238,9 +262,6 @@ def main(port: int) -> None:
                   on_click=run_save,
                   type="primary",
                   disabled=st.session_state.not_modified)
-
-        if st.session_state.df_empty_name:
-            st.write('Certains noms sont manquants !')
 
         if st.session_state.run_save:
             save_requests(port)
