@@ -95,5 +95,6 @@ CONFIG = {
                                                        options=["active", 'inactive'],
                                                        help="Si la recherche doit apparaître dans la page "
                                                           "'Recherche vêtements'",
-                                                       default="active")
+                                                       default="active",
+                                                       required=True)
 }
