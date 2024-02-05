@@ -61,7 +61,7 @@ def get_clothes(port: int,
                     break
             request_clothes = requests.get(f"{API_HOST}:{port}/{GET_CLOTHES_ROUTE}", data=json.dumps(found_request))
             clothes = format_clothes(clothes, request_clothes)
-            corresponding_requests.extend([found_request["name"]] * (len(clothes) - len(corresponding_requests)))
+            corresponding_requests.extend([found_request] * (len(clothes) - len(corresponding_requests)))
 
         # Keep copy of the original order
         clothes_orig = clothes.copy()
@@ -107,11 +107,11 @@ def format_clothes(clothes: list,
     return clothes
 
 def display_clothe(clothe: dict,
-                   request_name: str) -> None:
+                   request: dict) -> None:
     """
     Given a dict (clothe), displays it on a container
     :param clothe: dict, formatted clothe
-    :param request_name, str, the corresponding request name
+    :param request, dict, the corresponding request
     :return: None
     """
     logging.info(f"Displaying clothe: {clothe}")
@@ -152,7 +152,7 @@ def display_clothe(clothe: dict,
         tiles[3].link_button('Voir sur Vinted', clothe["url"])
         tiles[4].button('AutoBuy', type="primary", key=str(clothe["id"]))
         # Corresponding request name
-        tiles[5].markdown(f"**Via recherche:** {request_name}")
+        tiles[5].markdown(f"**Via recherche:** {request['name']}")
 
     return
 
@@ -209,9 +209,9 @@ def main(port: int) -> None:
                 col1, col2 = st.columns(2)
                 cols = [col1, col2]
                 c = 0
-                for clothe, request_name in zip(st.session_state.result, st.session_state.corresponding_requests):
+                for clothe, request in zip(st.session_state.result, st.session_state.corresponding_requests):
                     with cols[c % 2]:
-                        display_clothe(clothe, request_name)
+                        display_clothe(clothe, request)
                         c += 1
 
 
