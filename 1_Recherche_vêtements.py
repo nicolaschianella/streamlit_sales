@@ -26,7 +26,9 @@ def run() -> None:
     """
     This function sets session_state.run to True, to disable the usage of the button "Chercher vêtements"
     while the API is requested.
-    :return: None
+
+    Returns:
+        None
     """
     logging.info("Acquiring clothes")
     st.session_state.run = True
@@ -36,10 +38,13 @@ def get_clothes(port: int,
     """
     Main function called when we click on the "Chercher vêtements" button.
     Acquires Vinted clothes using our API.
-    :param port: int, API port to use
-    :param selected_requests: list of str, list of requests names to apply
-    :return: tuple, (clothes, corresponding_requests),
-    (str (in case of error) or list (if the call was successful), list)
+
+    Args:
+        port (int): API port in use
+        selected_requests (list[str]): list of requests names to apply
+
+    Returns:
+        tuple, (clothes, corresponding_requests), (str (in case of error) or list (if the call was successful), list)
     """
     corresponding_requests = []
     clothes = []
@@ -86,9 +91,13 @@ def format_clothes(clothes: list,
                    request_clothes: requests.models.Response) -> list:
     """
     Formats clothes from the API response
-    :param clothes: list, all the current clothes
-    :param request_clothes: requests.models.Response, API response for the given request
-    :return: list, formatted clothes with unique values
+
+    Args:
+        clothes (list): all the current clothes
+        request_clothes (requests.models.Response): API response for the given request
+
+    Returns:
+        list, formatted clothes with unique values
     """
     request_clothes = json.loads(request_clothes.json()["data"])
     for item in request_clothes:
@@ -112,9 +121,13 @@ def display_clothe(clothe: dict,
                    request: dict) -> None:
     """
     Given a dict (clothe), displays it on a container
-    :param clothe: dict, formatted clothe
-    :param request, dict, the corresponding request
-    :return: None
+
+    Args:
+        clothe (dict): formatted clothe
+        request (dict): the corresponding request
+
+    Returns:
+        None
     """
     logging.info(f"Displaying clothe: {clothe}")
 
@@ -148,13 +161,27 @@ def display_clothe(clothe: dict,
     os.remove("clothe_image.png")
 
 def autobuy(clothe, request):
+    """
+    In construction.
+
+    Args:
+        clothe:
+        request:
+
+    Returns:
+
+    """
     st.session_state.autobuy[clothe["id"]] = True
 
 def main(port: int) -> None:
     """
     Main function running this page.
-    :param port: int, API port to use
-    :return: None
+
+    Args:
+        port (int): API port to use
+
+    Returns:
+        None
     """
     # Deactivate button and requests selection when running get_clothes
     if 'run' not in st.session_state:

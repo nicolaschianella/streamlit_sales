@@ -20,8 +20,12 @@ from utils.defines import API_HOST, GET_REQUESTS_ROUTE
 def set_basic_config(page_name: str) -> tuple[int, str]:
     """
     Sets basic config such as page name, logs, etc
-    :param page_name: str, name of page to be displayed
-    :return: tuple, (int, str), (API port used, logs filename)
+
+    Args:
+        page_name (str): name of page to be displayed
+
+    Returns:
+        tuple, (int, str), (API port used, logs filename)
     """
     # Page name
     st.set_page_config(
@@ -68,9 +72,13 @@ def get_requests(port: int,
                  filter_on_active: bool = True) -> bool:
     """
     Acquires available clothes requests using our API and put them in st.session_state.
-    :param port: int, API port to use
-    :param filter_on_active: bool, to only filter on active requests (page "Recherche vêtements")
-    :return: bool, whether we display requests data_editor or not (page "Edition requêtes")
+
+    Args:
+        port (int): API port in use
+        filter_on_active (bool): whether to only filter on active requests (page "Recherche vêtements")
+
+    Returns:
+        bool, whether we display requests data_editor or not (page "Edition requêtes")
     """
     logging.info("Getting requests")
 
@@ -112,7 +120,9 @@ def get_requests(port: int,
 def clear_session_state() -> None:
     """
     Clears all session state variables
-    :return: None
+
+    Returns:
+        None
     """
     for key in st.session_state:
         del st.session_state[key]

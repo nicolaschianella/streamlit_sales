@@ -22,7 +22,9 @@ from utils.defines import (MAPPER_REQUESTS, MAPPER_STATUS_IDS, STATUS_IDS_KEY, B
 def display_requests() -> None:
     """
     Put DataFrame to be displayed, config and columns in st.session_state
-    :return: None
+
+    Returns:
+        None
     """
     # Format requests
     for_reqs = format_requests()
@@ -47,7 +49,9 @@ def display_requests() -> None:
 def format_requests() -> list[dict]:
     """
     Format the st.session_state.requests using the MAPPER_REQUESTS dictionary
-    :return: list[dict], list of formatted requests dictionary
+
+    Returns:
+        list[dict], list of formatted requests dictionary
     """
     try:
         requests = st.session_state.requests.copy()
@@ -87,7 +91,9 @@ def format_requests() -> list[dict]:
 def run_save() -> None:
     """
     Disables editing of the DataFrame and the corresponding save button
-    :return: None
+
+    Returns:
+        None
     """
     logging.info("Saving requests in Mongo")
     st.session_state.not_modified = True
@@ -96,15 +102,21 @@ def run_save() -> None:
 def modify_df() -> None:
     """
     Enables save button
-    :return: None
+
+    Returns:
+        None
     """
     st.session_state.not_modified = False
 
-def concat_clothe_states(row):
+def concat_clothe_states(row: dict) -> str:
     """
     Small function to format back clothe states to its original format
-    :param row: DataFrame row to be reformatted
-    :return: new reformatted column value
+
+    Args:
+        row (dict): DataFrame row to be reformatted
+
+    Returns:
+        str, new reformatted column value
     """
     final_value = ""
 
@@ -120,7 +132,9 @@ def concat_clothe_states(row):
 def format_requests_back() -> None:
     """
     Formats the DataFrame back to its original format to be sent to the API
-    :return: None
+
+    Returns:
+        None
     """
     logging.info("Starting formatting requests")
 
@@ -196,11 +210,15 @@ def format_requests_back() -> None:
 
     logging.info(f"Requests successfully formatted: {st.session_state.requests_to_be_saved}")
 
-def save_requests(port) -> None:
+def save_requests(port: int) -> None:
     """
     Performs the saving of requests in DB after formatting them
-    :param port: int, API port to use
-    :return: None
+
+    Args:
+        port (int): API port in use
+
+    Returns:
+        None
     """
     try:
         # Format requests
@@ -226,8 +244,12 @@ def save_requests(port) -> None:
 def main(port: int) -> None:
     """
     Main function running this page.
-    :param port: int, API port to use
-    :return: None
+
+    Args:
+        port (int): API port in use
+
+    Returns:
+        None
     """
     if 'run_save' not in st.session_state:
         # Reset requests and reload them
